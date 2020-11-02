@@ -1,0 +1,182 @@
+---
+title: "assignment_6"
+author: "Nicole Szeluga"
+date: "11/1/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Assignment 6: Relational data plus revisiting data wrangling and
+visualization
+================
+
+## Instructions: Please read through this before you begin
+
+  - This assignment is due by **10pm on Monday 11/02/20**.
+
+  - Please **reproduce this markdown template**. Pay attention to all
+    the formating in this file, including bullet points, bolded
+    characters, inserted code chunks, headings, text colors, blank
+    lines, and etc.
+
+  - For exercise 1, use the appropriate `join` function to **join** some
+    relational datasets, and use the resulting datasets to answer some
+    questions.
+
+  - For the second exercise in this assignment, you will use the data
+    wrangling and visualization skills that you have learned in this
+    class to reproduce a figure exactly as it is shown.
+
+  - Have all your code embedded within the R markdown file, and show
+    both of your **code** and **plots** in the knitted markdown file.
+
+  - Use R Markdown functionalities to **hide messages and warnings when
+    needed**. (Suggestion: messages and warnings can often be
+    informative and important, so please examine them carefully and only
+    turn them off when you finish the exercise).
+
+  - Please name your R markdown file `assignment_6.Rmd` and the knitted
+    markdown file `assignment_6.md`. Please upload both files using your
+    personal GitHub repository for this class.
+
+  - First, load all the required packages with the following code.
+    Install them if they are not installed yet.
+
+<!-- end list -->
+
+```{r}
+library(tidyverse)
+library(knitr)
+```
+
+
+<br>
+
+## Excercise 1: Join functions
+
+**Acknowledgements:** The datasets and some of the questions for this
+exercise has been borrowed (with permission) from Iain Carmichael’s
+course [STOR 390: Introduction to Data
+Science](https://idc9.github.io/stor390/#course_material).
+
+<br>
+
+#### Read in some relational datasets from GitHub
+
+
+```{r}
+toy1 <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/toy_one.csv')
+toy2 <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/toy_two.csv')
+
+## for 4.2
+play1 <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/play_one.csv')
+play2 <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/play_two.csv')
+
+## for 4.3
+banking_account_types <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/banking_account_types.csv')
+banking_transactions <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/banking_transactions.csv')
+
+## for 4.4
+crime_arrests <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/crime_arrests.csv')
+crime_wealth <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/crime_wealth.csv')
+
+## for 4.5
+titanic_outcomes <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/titanic_outcomes.csv')
+titanic_person_features <- read_csv('https://raw.githubusercontent.com/idc9/stor390/master/data/joins/titanic_person_features.csv')
+```
+
+
+
+<br>
+
+#### 1.1 Join the `toy` datasets. Only keep rows that have matches in the other dataset. Show the resulting dataset using `kable()`.
+
+```{r}
+ rename(toy2,key = label) %>% 
+  left_join(toy1, toy2, by = "key") %>% 
+  na.omit() %>% 
+  kable()
+```
+
+
+<br>
+
+#### 1.2 Join the `play` datasets by `key` and `label`. Keep all rows from both datasets. Show the resulting dataset using `kable()`.
+
+```{r}
+full_join(play1, play2, by = c("key", "label")) %>% 
+  kable()
+```
+
+
+<br>
+
+#### 1.3 Plot the distribution of total transaction amount per account ID grouped by different account types with a boxplot shown below, using the `banking` datasets.
+
+    ## `summarise()` regrouping output by 'id' (override with `.groups` argument)
+
+
+```{r}
+ 
+rename(banking_transactions, account_id = id) %>% 
+  left_join(banking_account_types, banking_transactions, by = "account_id") %>% 
+  group_by(account_id, account_type) %>% 
+  summarise("total_transaction_amount" = sum(transaction_amount)) %>% 
+  ggplot(mapping = aes( x = account_type, y = total_transaction_amount)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(height=0)
+```
+
+<br>
+
+#### 1.4 Which state is in the `crime_wealth` dataset but not the `crime_arrests` dataset? Use a join function to answer this question.
+
+```{r}
+left_join( crime_wealth, crime_arrests, by = "State") %>% 
+  kable()
+```
+
+The answer is the District of Columbia. 
+
+<br>
+
+## Exercise 2: Fuel Efficiency of Car Models
+
+This exercise uses the `mtcars` dataset. It was extracted from the 1974
+Motor Trend US magazine, and comprises fuel consumption and 10 aspects
+of automobile design and performance for 32 automobiles (1973–74
+models).
+
+```{r}
+kable(head(mtcars))
+```
+
+<br>
+
+#### 2.1 Reproduce the following plot, which shows the miles per gallon (`mpg`) of car models on the x axis (see hints below). Different models are ordered on the y axis according to their `mpg` and their names are shown next to the data points. Also, the size of each data point maps to its horse power (`hp`), and the color maps to number of cylinders (`cyl`).
+
+```{r}
+
+mtcars %>% 
+  rownames_to_column() %>% 
+  mutate("mpg_order" = row_number(mpg)) %>% 
+  ggplot(mapping = aes(x = mpg, y= mpg_order, color = factor(cyl), size = hp)) +
+  geom_point() +
+  geom_text(aes(label = rowname, hjust = -.15), size = 3.5, color = "black") +
+  xlab("Miles per gallon fuel consumption") +
+  ylab("") +
+  labs(size = "Horsepower", color = "Number of cylinders") +
+  theme(axis.line.y = element_blank(), panel.background = element_blank(), axis.line.x = element_line(), axis.ticks.y.left = element_blank(), axis.text.y = element_blank(), legend.key = element_blank()) +
+  xlim(0,40) 
+  
+  
+
+ 
+```
+
+
+<br>
+
